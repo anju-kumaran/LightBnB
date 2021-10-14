@@ -57,7 +57,6 @@ exports.getUserWithEmail = getUserWithEmail;
 //   return Promise.resolve(users[id]);
 // }
 const getUserWithId = function(id) {
-  //return Promise.resolve(users[id]);
   const queryString = `
   SELECT * FROM users
   WHERE id = $1;
@@ -67,7 +66,7 @@ const getUserWithId = function(id) {
     .query(queryString, values)
     .then((result) => {
       //console.log(result.rows);
-      return result.rows;
+      return result.rows[0];
     })
     .catch((err) => {
       console.log('Error message: ',err.message);
@@ -111,9 +110,38 @@ exports.addUser = addUser;
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
-const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
-}
+// const getAllReservations = function(guest_id, limit = 10) {
+//   return getAllProperties(null, 2);
+// }
+// Select reservations.*, properties.title 
+// from reservations 
+// JOIN properties ON reservations.property_id = properties.id
+// where reservations.guest_id = 28
+// AND reservations.end_date < now()::date
+// GROUP BY properties.id, reservations.id
+// ORDER BY reservations.start_date
+// LIMIT 10;
+
+const getAllReservations = function (guest_id, limit = 10) {
+  const queryString = `Select reservations.*, properties.* 
+  from reservations 
+  JOIN properties ON reservations.property_id = properties.id
+  where reservations.guest_id = $1
+  AND reservations.end_date < now()::date
+  GROUP BY properties.id, reservations.id
+  ORDER BY reservations.start_date
+  LIMIT $2;`;
+  const values = [guest_id,limit];
+  return pool
+  .query(queryString, values)
+  .then((result) => {
+    console.log('reservationss: ',result.rows)
+    return result.rows;
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
+};
 exports.getAllReservations = getAllReservations;
 
 /// Properties
@@ -128,7 +156,6 @@ const getAllProperties = (options, limit = 10) => {
   return pool
     .query(`SELECT * FROM properties LIMIT $1`, [limit])
     .then((result) => {
-      //console.log(result.rows);
       return result.rows;
     })
     .catch((err) => {
